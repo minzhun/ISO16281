@@ -6,51 +6,115 @@ from scipy import special
 
 class BallBearing:
 
+    # mat_E : modulus of elasticity , MPa
     mat_E = 210000.0
+
+    # mat_nu : poisson ratio
     mat_nu = 0.3
 
-    def __init__(self, Z, Dw, Dpw, ri, re, alpha, phi0, s):
+    def __init__(self, i, Z, Dw, Dpw, ri, re, alpha, phi0, s):
+
+        # Input for "disp" : Fr, Fa, Mz
+        # Output of "disp" : Delta_r, Delta_a, Delta_psi
+
+        # Input for "capacity" : Cr, Ca
+        # Output of "capacity" : Qci, Qce
+
+        # Output for "load" : Qei, Qee
+
+        # Output for "basic_ref_life" : L10r
+
+        # i : number of rows
+        self.i = i
+
+        # Z : number of rolling elements
         self.Z = Z
+
+        # Dw : Element Diameter , mm
         self.Dw = Dw
+
+        #  Dpw : Pitch Circle Diameter , mm
         self.Dpw = Dpw
+
+        # ri : inner groove diameter , mm
         self.ri = ri
+
+        # re: outer groove diameter , mm
         self.re = re
+
+        # alpha : nominal contact angle , degree
         self.alpha = alpha
         self.alpha_rad = math.radians(alpha)
+
+        # phi0 : first element angle , degree
         self.phi0 = phi0
+
+        # s : radial operating clearance , mm
         self.s = s
+
+        # Fr : radial load , N
         self.Fr = 0.0
+
+        # Fa : axial load , N
         self.Fa = 0.0
+
+        # Mz : moment , N*mm
         self.Mz = 0.0
+
+        # Delta_r : relative radial displacement , mm
         self.Delta_r = 0.0
+
+        # Delta_a : relative axial displacement , mm
         self.Delta_a = 0.0
+
+        # Delta_psi : total misalignment , rad
         self.Delta_psi = 0.0
+
+        # Cr : basic dynamic radial load rating , N
         self.Cr = 0.0
+
+        # Ca : basic dynamic axial load rating , N
         self.Ca = 0.0
+
+        # Qci : rolling element load for the basic dynamic load rating of inner ring or shaft washer , N
         self.Qci = 0.0
+
+        # Qce : rolling element load for the basic dynamic load rating of outer ring or housing washer , N
         self.Qce = 0.0
+
+        # Qei : dynamic equivalent rolling element load on inner ring or shaft washer , N
         self.Qei = 0.0
+
+        # Qee : dynamic equivalent rolling element load on outer ring or housing washer , N
         self.Qee = 0.0
+
+        # L10r : basic reference rating life , 1e6 cycle
         self.L10r = 0.0
 
+        # phi : angular position of elements , deg
         self.phi = list(range(Z))
         for i in self.phi:
             self.phi[i] = self.phi0 + self.phi[i] * 360.0 / self.Z
         print("phi = ", self.phi)
 
+        # Delta_Element : elastic deflection of rolling element , mm
+        # Q_Element : load of rolling element , N
         self.Delta_Element = list(range(Z))
         self.Q_Element = list(range(Z))
         for i in list(range(Z)):
             self.Delta_Element[i] = 0.0
             self.Q_Element[i] = 0.0
 
+        # A : distance between raceway groove curvature center , mm
         self.A = self.ri + self.re - self.Dw
         print("A = %.4f" % self.A)
 
+        # alpha0 : initial contact angle
         self.alpha0 = math.acos(1.0 - self.s / 2.0 / self.A)
         self.alpha0_deg = math.degrees(math.acos(1.0 - self.s / 2.0 / self.A))
         print("alpha0 = %.4f" % self.alpha0_deg)
 
+        # gamma : auxiliary parameter , 1
         self.gamma = self.Dw * math.cos(self.alpha) / self.Dpw
         print("gamma = %.4f" % self.gamma)
 
@@ -92,12 +156,12 @@ class BallBearing:
     def eq_2_2(self, chi):
         return 1 - 2.0 / (chi ** 2 - 1.0) * (self.k(chi) / self.e(chi) - 1.0) - self.Fe_rho
 
-    def delta(self, Fr, Fa, Mz):
+    def disp(self, Fr, Fa, Mz):
         self.Fr = Fr
         self.Fa = Fa
         self.Mz = Mz
         delta0 = np.array([0.0, 0.0, 0.0])
-        sol = optimize.root(self.delta_func, delta0)
+        sol = optimize.root(self.equilibrium, delta0)
         self.Delta_r = sol.x[0] * 1000
         self.Delta_a = sol.x[1] * 1000
         self.Delta_psi = sol.x[2] * 1000
@@ -120,7 +184,7 @@ class BallBearing:
         print("Delta_Element = ", self.Delta_Element)
         print("Q_Element = ", self.Q_Element)
 
-    def delta_func(self, delta):
+    def equilibrium(self, delta):
         temp_sum_1 = 0.0
         temp_sum_2 = 0.0
         temp_sum_3 = 0.0
@@ -183,9 +247,9 @@ class BallBearing:
         print("L10r = %.4f" % self.L10r)
 
 
-bearing = BallBearing(7, 11.1, 43.5, 5.772, 5.883, 0.0, 0.0, 0.0)
-bearing.delta(1000.0, 0.0, 0.0)
+bearing = BallBearing(1, 7, 11.1, 43.5, 5.772, 5.883, 0.0, 0.0, 0.012)
+bearing.disp(1000.0, 500.0, 0.0)
 bearing.element()
-bearing.capacity(23400, 0.0)
-bearing.load(0)
-bearing.basic_ref_life()
+# bearing.capacity(23400, 0.0)
+# bearing.load(0)
+# bearing.basic_ref_life()
