@@ -16,7 +16,7 @@ from scipy import special
 
 class BallBearing:
 
-    # Input for disp() : Fr, Fa, Mz
+    # Input for disp() : Fx, Fy, Fz, Mz
     # Output of disp() : Delta_r, Delta_a, Delta_psi
     # Input for capacity() : Capacity, Bearing type
     # Output of capacity() : Qci, Qce
@@ -48,6 +48,7 @@ class BallBearing:
 
         # calculated in geometry()
         self.phi = list(range(self.Z))
+        self.phi_cal = list(range(self.Z))
         self.A = 0.0
         self.gamma = 0.0
         self.sigma_rho_i = 0.0
@@ -75,6 +76,7 @@ class BallBearing:
         self.Fr = 0.0
         self.Fa = 0.0
         self.Mz = 0.0
+        self.angle_fr = 0.0
         self.Delta_r = 0.0
         self.Delta_a = 0.0
         self.Delta_a_MASTA = 0.0
@@ -164,11 +166,16 @@ class BallBearing:
         print("bearing type :", self.type)
 
     # calculate displacement from equilibrium condition
-    def disp(self, Fr, Fa, Mz):
+    def disp(self, Fx, Fy, Fz, Mz):
         # Fr : radial load , N
-        self.Fr = Fr
+        self.Fr = math.sqrt(Fx * Fx + Fy * Fy)
+        # radial load angle , deg
+        self.angle_fr = math.degrees(math.atan(Fy / Fx))
+        #
+        for i in self.phi_cal:
+            self.phi_cal[i] = self.phi[i] - self.angle_fr
         # Fa : axial load , N
-        self.Fa = Fa
+        self.Fa = Fz
         # Mz : moment , N*mm
         self.Mz = Mz
         # delta0 : initial value
@@ -227,14 +234,14 @@ class BallBearing:
             self.Alpha_Element[i] = 0.0
             self.Q_Element[i] = 0.0
         for j in list(range(self.Z)):
-            delta_j = math.sqrt((self.A * math.cos(self.alpha0) + self.Delta_r * math.cos(math.radians(self.phi[j]))) ** 2 +
+            delta_j = math.sqrt((self.A * math.cos(self.alpha0) + self.Delta_r * math.cos(math.radians(self.phi_cal[j]))) ** 2 +
                                 (self.A * math.sin(self.alpha0) + self.Delta_a + self.Ri * math.sin(self.Delta_psi) * math.cos(
-                                    math.radians(self.phi[j]))) ** 2) - self.A
+                                    math.radians(self.phi_cal[j]))) ** 2) - self.A
             if delta_j < 0.0:
                 delta_j = 0.0
             alpha_j = math.atan(
-                (self.A * math.sin(self.alpha0) + self.Delta_a + self.Ri * math.sin(self.Delta_psi) * math.cos(math.radians(self.phi[j]))) /
-                (self.A * math.cos(self.alpha0) + self.Delta_r * math.cos(math.radians(self.phi[j]))))
+                (self.A * math.sin(self.alpha0) + self.Delta_a + self.Ri * math.sin(self.Delta_psi) * math.cos(math.radians(self.phi_cal[j]))) /
+                (self.A * math.cos(self.alpha0) + self.Delta_r * math.cos(math.radians(self.phi_cal[j]))))
             self.Delta_Element[j] = delta_j
             self.Alpha_Element[j] = math.degrees(alpha_j)
             self.Q_Element[j] = self.cp * math.pow(delta_j, 1.5)
@@ -294,7 +301,7 @@ class BallBearing:
         temp_sum_1 = 0.0
         temp_sum_2 = 0.0
         temp_sum_3 = 0.0
-        for phi_j in self.phi:
+        for phi_j in self.phi_cal:
             delta_j = math.sqrt((self.A * math.cos(self.alpha0) + delta[0] * math.cos(math.radians(phi_j))) ** 2 +
                                 (self.A * math.sin(self.alpha0) + delta[1] + self.Ri * math.sin(delta[2]) * math.cos(
                                     math.radians(phi_j))) ** 2) - self.A
@@ -321,3 +328,24 @@ class BallBearing:
 # plt.plot(input_data, output_data_2, color='blue')
 # plt.grid()
 # plt.show()
+
+# Example 1 : 深沟球轴承，径向间隙为零，只受径向力
+# Delta : 16.9905 um
+# L10r : 12008.9256
+# BallBearing ( i, Z, Dw, Dpw, ri, re, alpha, phi0, type )
+print("----------------------------------------------------------------")
+print("Example 1")
+bearing_1 = BallBearing(1, 6, 11.1, 43.5, 5.772, 5.883, 0.0, 0.0, 0)
+bearing_1.geometry()
+bearing_1.material()
+bearing_1.stiffness()
+bearing_1.internal_clearance(0.0)
+bearing_1.info()
+bearing_1.disp(500.0, 866.0, 0.0, 0.0)
+bearing_1.rating(23400)
+bearing_1.residual()
+Err1 = (bearing_1.Delta_r * 1000 - 16.9905) / 16.9905 * 100
+Err2 = (bearing_1.L10r - 12008.9256) / 12008.9256 * 100
+print("Err 1 = %.4f" % Err1, "%")
+print("Err 2 = %.4f" % Err2, "%")
+print(bearing_1.phi_cal)
