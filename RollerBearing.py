@@ -1,8 +1,6 @@
 import math
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy import optimize
-from scipy import special
 
 # bearing = RollerBearing()
 # bearing.geometry()
@@ -13,8 +11,22 @@ from scipy import special
 # bearing.disp() : calculate relative displacement
 # bearing.rating() : print basic ref rating life
 
+# bearing type
+# 1 - cylindrical roller bearing, needle roller bearing
+# 2 - tapered roller bearing
+# 3 - thrust cylindrical roller bearing, thrust needle roller bearing
+# 4 - thrust tapered roller bearing
+
 
 class RollerBearing:
+
+    # Input for disp() : Fx, Fy, Mz
+    # Output of disp() : Delta_r, Delta_psi
+    # Input for capacity() : Capacity
+    # Output of capacity() : Qci, Qce, qci, qce
+    # Output for element() : Delta_j, Psi_j, Delta_j_k, Q_j_k
+    # Output for load() : qkei, qkee
+    # Output for basic_ref_life() : L10r, Pref
 
     def __init__(self, i, Z, Dwe, Dpw, Lwe, alpha_deg, phi0, bearing_type, ns=30):
 
@@ -22,7 +34,7 @@ class RollerBearing:
         self.i = i
         # Z : number of rolling elements
         self.Z = Z
-        # Dwe : roller diameter , mm
+        # Dwe : element diameter , mm
         self.Dwe = Dwe
         # Dpw : Pitch Circle Diameter , mm
         self.Dpw = Dpw
@@ -108,9 +120,9 @@ class RollerBearing:
 
     # roller profile
     # Equation 42 - 44
-    def roller_profile(self, use_or_not=0):
-        if use_or_not == 1:
-            self.xk = (np.arange(self.ns) - self.ns / 2 + 0.5) * self.Lwe / self.ns    # ns 为偶数
+    def roller_profile(self):
+        self.xk = (np.arange(self.ns) - self.ns / 2 + 0.5) * self.Lwe / self.ns  # ns 为偶数
+        if self.type == 1 or self.type == 3:
             if self.Lwe <= 2.5 * self.Dwe:
                 self.profile = 0.00035 * self.Dwe * np.log(1.0 / (1.0 - np.power(2 * self.xk / self.Lwe, 2)))
             else:
@@ -119,8 +131,8 @@ class RollerBearing:
                         self.profile[i] = 0.0
                     else:
                         self.profile[i] = 0.0005 * self.Dwe * math.log(1.0 / 1.0 - math.pow((2.0 * abs(self.xk[i]) - self.Lwe - 2.5 * self.Dwe) / 2.5 / self.Dwe, 2))
-        else:
-            self.profile = np.zeros(self.ns)
+        elif self.type == 2 or self.type == 4:
+            self.profile = 0.00045 * self.Dwe * np.log(1.0 / (1.0 - np.power(2 * self.xk / self.Lwe, 2)))
 
     def info(self):
         print("phi = ", self.phi_deg)
@@ -170,15 +182,15 @@ class RollerBearing:
         temp_6 = pow(2, 2/9)
         # Qci : rolling element load for the basic dynamic load rating of inner ring or shaft washer , N
         # Qce : rolling element load for the basic dynamic load rating of outer ring or housing washer , N
-        if self.type == 0:
+        if self.type == 1 or self.type == 2:
             const_rambda_v = 0.83
             self.Qci = self.C / const_rambda_v / 0.378 / self.Z / math.cos(self.alpha) / math.pow(self.i, 7/9) * temp_1
             self.Qce = self.C / const_rambda_v / 0.364 / self.Z / math.cos(self.alpha) / math.pow(self.i, 7/9) * temp_2
-        if self.type == 1 and self.alpha != 90.0:
+        if (self.type == 3 or self.type == 4) and self.alpha != 90.0:
             const_rambda_v = 0.73
             self.Qci = self.C / const_rambda_v / self.Z / math.sin(self.alpha) * temp_3
             self.Qce = self.C / const_rambda_v / self.Z / math.sin(self.alpha) * temp_4
-        if self.type == 1 and self.alpha == 90.0:
+        if (self.type == 3 or self.type == 4) and self.alpha == 90.0:
             const_rambda_v = 0.73
             self.Qci = self.C / const_rambda_v / self.Z * temp_5
             self.Qce = self.C / const_rambda_v / self.Z * temp_6
@@ -285,7 +297,7 @@ class RollerBearing:
 # RollerBearing ( i, Z, Dwe, Dpw, Lwe, alpha_deg, phi0, bearing_type, ns=30 )
 print("----------------------------------------------------------------")
 print("Example 1")
-bearing_1 = RollerBearing(1, 6, 9.0, 43.5, 13.6, 0.0, 30.0, 0, 30)
+bearing_1 = RollerBearing(1, 6, 9.0, 43.5, 13.6, 0.0, 30.0, 1, 30)
 bearing_1.geometry()
 bearing_1.stiffness()
 bearing_1.internal_clearance(0.0)

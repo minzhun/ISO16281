@@ -13,18 +13,25 @@ from scipy import special
 # bearing.disp() : calculate relative displacement
 # bearing.rating() : print basic ref rating life
 
+# bearing_type
+# 1 - deep groove ball bearing, angular contact ball bearing, separable ball bearing
+# 2 - spherical roller bearing
+# 3 - self aligning ball bearing
+# 4 - thrust ball bearing, thrust angular contact ball bearing
+# 5 - thrust spherical roller bearing
+
 
 class BallBearing:
 
     # Input for disp() : Fx, Fy, Fz, Mz
     # Output of disp() : Delta_r, Delta_a, Delta_psi
-    # Input for capacity() : Capacity, Bearing type
+    # Input for capacity() : Capacity
     # Output of capacity() : Qci, Qce
-    # Output for element() : delta_j, alpha_j, Q_j
+    # Output for element() : Delta_j, Alpha_j, Q_j
     # Output for load() : Qei, Qee
-    # Output for basic_ref_life() : L10r, Pref_r
+    # Output for basic_ref_life() : L10r, Pref
 
-    def __init__(self, i, Z, Dw, Dpw, ri, re, alpha, phi0, bearing_type):
+    def __init__(self, i, Z, Dw, Dpw, alpha, phi0, bearing_type):
 
         # i : number of rows
         self.i = i
@@ -34,21 +41,19 @@ class BallBearing:
         self.Dw = Dw
         #  Dpw : Pitch Circle Diameter , mm
         self.Dpw = Dpw
-        # ri : inner groove diameter , mm
-        self.ri = ri
-        # re: outer groove diameter , mm
-        self.re = re
         # alpha : nominal contact angle , degree
         self.alpha = alpha
         self.alpha_rad = math.radians(alpha)
         # phi0 : first element angle , degree
         self.phi0 = phi0
-        # type : 0 - radial ball bearing ; 1- thrust ball bearing
+        # type
         self.type = bearing_type
 
         # calculated in geometry()
-        self.phi = list(range(self.Z))
-        self.phi_cal = list(range(self.Z))
+        self.ri = 0.0
+        self.re = 0.0
+        self.phi_deg = np.zeros(self.Z)
+        self.phi = np.zeros(self.Z)
         self.A = 0.0
         self.gamma = 0.0
         self.sigma_rho_i = 0.0
@@ -73,6 +78,8 @@ class BallBearing:
         self.Ri = 0.0
 
         # defined and calculated in disp()
+        self.phi_cal = np.zeros(self.Z)
+        self.phi_cal_deg = np.zeros(self.Z)
         self.Fr = 0.0
         self.Fa = 0.0
         self.Mz = 0.0
@@ -88,9 +95,9 @@ class BallBearing:
         self.Qce = 0.0
 
         # calculated in element()
-        self.Delta_Element = list(range(Z))
-        self.Alpha_Element = list(range(Z))
-        self.Q_Element = list(range(Z))
+        self.Delta_Element = np.zeros(self.Z)
+        self.Alpha_Element = np.zeros(self.Z)
+        self.Q_Element = np.zeros(self.Z)
 
         # calculated in load()
         self.Qei = 0.0
@@ -98,17 +105,36 @@ class BallBearing:
 
         # calculated in basic_ref_life()
         self.L10r = 0.0
-        self.Pref_r = 0.0
+        self.Pref = 0.0
 
     # bearing geometry
     def geometry(self):
-        # phi : angular position of elements , deg
-        for i in self.phi:
-            self.phi[i] = self.phi0 + self.phi[i] * 360.0 / self.Z
-        # A : distance between raceway groove curvature center , mm
-        self.A = self.ri + self.re - self.Dw
         # gamma : auxiliary parameter , 1
         self.gamma = self.Dw * math.cos(self.alpha) / self.Dpw
+        # ri : inner groove diameter , mm
+        # re: outer groove diameter , mm
+        if self.type == 1:
+            self.re = 0.53 * self.Dw
+            self.ri = 0.52 * self.Dw
+        elif self.type == 2:
+            self.re = self.Dpw / 2.0 / math.cos(self.alpha) + 0.5 * self.Dw
+            self.ri = self.re
+            self.Dw = 2 * 0.97 * self.re
+        elif self.type == 3:
+            self.re = 0.5 * self.Dw * (1.0 + 1.0 / self.gamma)
+            self.ri = 0.53 * self.Dw
+        elif self.type == 4:
+            self.re = 0.54 * self.Dw
+            self.ri = 0.54 * self.Dw
+        elif self.type == 5:
+            self.re = (self.Dpw + self.Dw * math.cos(math.radians(45.0))) / 2 / math.cos(self.alpha)
+            self.ri = self.re
+            self.Dw = 2 * 0.97 * self.re
+        # phi : angular position of elements , deg
+        self.phi_deg = self.phi0 + np.linspace(0.0, 360.0, self.Z, endpoint=False)
+        self.phi = np.radians(self.phi_deg)
+        # A : distance between raceway groove curvature center , mm
+        self.A = self.ri + self.re - self.Dw
         # sigma_rho_i : curvature sum at inner ring contact , 1/mm
         self.sigma_rho_i = 2.0 / self.Dw * (2.0 + self.gamma / (1 - self.gamma) - self.Dw / 2.0 / self.ri)
         # sigma_rho_e : curvature sum at outer ring contact , 1/mm
@@ -150,7 +176,7 @@ class BallBearing:
 
     # print bearing information
     def info(self):
-        print("phi = ", self.phi)
+        print("phi = ", self.phi_deg)
         print("A = %.4f" % self.A)
         print("alpha0_deg = %.4f" % self.alpha0_deg)
         print("s_a = %.4f" % self.s_a)
@@ -170,10 +196,10 @@ class BallBearing:
         # Fr : radial load , N
         self.Fr = math.sqrt(Fx * Fx + Fy * Fy)
         # radial load angle , deg
-        self.angle_fr = math.degrees(math.atan(Fy / Fx))
+        self.angle_fr = math.atan(Fy / Fx)
         #
-        for i in self.phi_cal:
-            self.phi_cal[i] = self.phi[i] - self.angle_fr
+        self.phi_cal = self.phi - self.angle_fr
+        self.phi_cal_deg = np.degrees(self.phi_cal)
         # Fa : axial load , N
         self.Fa = Fz
         # Mz : moment , N*mm
@@ -212,13 +238,13 @@ class BallBearing:
         temp_6 = math.pow(1+ math.pow(pow(self.ri/self.re*(2*self.re-self.Dw)/(2*self.ri-self.Dw), 0.41), -10/3), 0.3)
         # Qci : rolling element load for the basic dynamic load rating of inner ring or shaft washer , N
         # Qce : rolling element load for the basic dynamic load rating of outer ring or housing washer , N
-        if self.type == 0:
+        if self.type == 1 or self.type == 2 or self.type == 3:
             self.Qci = self.C / 0.407 / self.Z / math.cos(self.alpha) / math.pow(self.i, 0.7) * temp_1
             self.Qce = self.C / 0.389 / self.Z / math.cos(self.alpha) / math.pow(self.i, 0.7) * temp_2
-        if self.type == 1 and self.alpha != 90.0:
+        if (self.type == 4 or self.type == 5) and self.alpha != 90.0:
             self.Qci = self.C / self.Z / math.sin(self.alpha_rad) * temp_3
             self.Qce = self.C / self.Z / math.sin(self.alpha_rad) * temp_4
-        if self.type == 1 and self.alpha == 90.0:
+        if (self.type == 4 or self.type == 5) and self.alpha == 90.0:
             self.Qci = self.C / self.Z * temp_5
             self.Qce = self.C / self.Z * temp_6
         print("Qci = %.4f" % self.Qci)
@@ -229,22 +255,15 @@ class BallBearing:
     # Alpha_Element : operating contact angle of rolling element , deg
     # Q_Element : load of rolling element , N
     def element(self):
-        for i in list(range(self.Z)):
-            self.Delta_Element[i] = 0.0
-            self.Alpha_Element[i] = 0.0
-            self.Q_Element[i] = 0.0
-        for j in list(range(self.Z)):
-            delta_j = math.sqrt((self.A * math.cos(self.alpha0) + self.Delta_r * math.cos(math.radians(self.phi_cal[j]))) ** 2 +
-                                (self.A * math.sin(self.alpha0) + self.Delta_a + self.Ri * math.sin(self.Delta_psi) * math.cos(
-                                    math.radians(self.phi_cal[j]))) ** 2) - self.A
-            if delta_j < 0.0:
-                delta_j = 0.0
-            alpha_j = math.atan(
-                (self.A * math.sin(self.alpha0) + self.Delta_a + self.Ri * math.sin(self.Delta_psi) * math.cos(math.radians(self.phi_cal[j]))) /
-                (self.A * math.cos(self.alpha0) + self.Delta_r * math.cos(math.radians(self.phi_cal[j]))))
-            self.Delta_Element[j] = delta_j
-            self.Alpha_Element[j] = math.degrees(alpha_j)
-            self.Q_Element[j] = self.cp * math.pow(delta_j, 1.5)
+        self.Delta_Element = np.sqrt((self.A * math.cos(self.alpha0) + self.Delta_r * np.cos(self.phi_cal)) ** 2 +
+                                (self.A * math.sin(self.alpha0) + self.Delta_a + self.Ri * math.sin(self.Delta_psi) * np.cos(
+                                    self.phi_cal)) ** 2) - self.A
+        self.Delta_Element = np.maximum(self.Delta_Element, 0.0)
+        self.Alpha_Element = np.arctan(
+                (self.A * math.sin(self.alpha0) + self.Delta_a + self.Ri * math.sin(self.Delta_psi) * np.cos(self.phi_cal)) /
+                (self.A * math.cos(self.alpha0) + self.Delta_r * np.cos(self.phi_cal)))
+        self.Alpha_Element = np.degrees(self.Alpha_Element)
+        self.Q_Element = self.cp * np.power(self.Delta_Element, 1.5)
         print("Delta_Element = ", self.Delta_Element)
         print("Alpha_Element = ", self.Alpha_Element)
         print("Q_Element = ", self.Q_Element)
@@ -276,9 +295,9 @@ class BallBearing:
     # Pref_r : dynamic equivalent refrence load , N
     def basic_ref_life(self):
         self.L10r = math.pow(math.pow(self.Qci/self.Qei, -10/3) + math.pow(self.Qce/self.Qee, -10/3), -9/10)
-        self.Pref_r = self.C / math.pow(self.L10r, 1/3)
+        self.Pref = self.C / math.pow(self.L10r, 1/3)
         print("L10r = %.4f" % self.L10r)
-        print("Pref_r = %.4f" % self.Pref_r)
+        print("Pref_r = %.4f" % self.Pref)
 
     # Equation 3 : complete elliptic integral of the first kind
     def k(self, chi):
@@ -298,21 +317,19 @@ class BallBearing:
 
     # Equation 16-18 : equilibrium condition
     def equilibrium(self, delta):
-        temp_sum_1 = 0.0
-        temp_sum_2 = 0.0
-        temp_sum_3 = 0.0
-        for phi_j in self.phi_cal:
-            delta_j = math.sqrt((self.A * math.cos(self.alpha0) + delta[0] * math.cos(math.radians(phi_j))) ** 2 +
-                                (self.A * math.sin(self.alpha0) + delta[1] + self.Ri * math.sin(delta[2]) * math.cos(
-                                    math.radians(phi_j))) ** 2) - self.A
-            if delta_j < 0.0:
-                delta_j = 0.0
-            alpha_j = math.atan(
-                (self.A * math.sin(self.alpha0) + delta[1] + self.Ri * math.sin(delta[2]) * math.cos(math.radians(phi_j))) /
-                (self.A * math.cos(self.alpha0) + delta[0] * math.cos(math.radians(phi_j))))
-            temp_sum_1 = temp_sum_1 + pow(delta_j, 1.5) * math.cos(alpha_j) * math.cos(math.radians(phi_j))
-            temp_sum_2 = temp_sum_2 + pow(delta_j, 1.5) * math.sin(alpha_j)
-            temp_sum_3 = temp_sum_3 + pow(delta_j, 1.5) * math.sin(alpha_j) * math.cos(math.radians(phi_j))
+        delta_j = np.sqrt((self.A * math.cos(self.alpha0) + delta[0] * np.cos(self.phi_cal)) ** 2 +
+                            (self.A * math.sin(self.alpha0) + delta[1] + self.Ri * math.sin(delta[2]) * np.cos(
+                                self.phi_cal)) ** 2) - self.A
+        delta_j = np.maximum(delta_j, 0)
+        alpha_j = np.arctan(
+            (self.A * math.sin(self.alpha0) + delta[1] + self.Ri * math.sin(delta[2]) * np.cos(self.phi_cal)) /
+            (self.A * math.cos(self.alpha0) + delta[0] * np.cos(self.phi_cal)))
+        temp_sum_1 = np.power(delta_j, 1.5) * np.cos(alpha_j) * np.cos(self.phi_cal)
+        temp_sum_1 = temp_sum_1.sum()
+        temp_sum_2 = np.power(delta_j, 1.5) * np.sin(alpha_j)
+        temp_sum_2 = temp_sum_2.sum()
+        temp_sum_3 = np.power(delta_j, 1.5) * np.sin(alpha_j) * np.cos(self.phi_cal)
+        temp_sum_3 = temp_sum_3.sum()
         return [self.Fr - self.cp * temp_sum_1,
                 self.Fa - self.cp * temp_sum_2,
                 self.Mz - self.Dpw / 2.0 * self.cp * temp_sum_3]
@@ -321,21 +338,13 @@ class BallBearing:
         print("Equilibrium Residual = ", self.equilibrium([self.Delta_r, self.Delta_a, self.Delta_psi]))
 
 
-# input_data = np.arange(0.01, 20.0, 0.1)
-# output_data_1 = bearing.eq_2_1(input_data)
-# output_data_2 = bearing.eq_2_2(input_data)
-# plt.plot(input_data, output_data_1, color='red')
-# plt.plot(input_data, output_data_2, color='blue')
-# plt.grid()
-# plt.show()
-
 # Example 1 : 深沟球轴承，径向间隙为零，只受径向力
 # Delta : 16.9905 um
 # L10r : 12008.9256
 # BallBearing ( i, Z, Dw, Dpw, ri, re, alpha, phi0, type )
 print("----------------------------------------------------------------")
 print("Example 1")
-bearing_1 = BallBearing(1, 6, 11.1, 43.5, 5.772, 5.883, 0.0, 0.0, 0)
+bearing_1 = BallBearing(1, 6, 11.1, 43.5, 0.0, 0.0, 1)
 bearing_1.geometry()
 bearing_1.material()
 bearing_1.stiffness()
@@ -348,4 +357,4 @@ Err1 = (bearing_1.Delta_r * 1000 - 16.9905) / 16.9905 * 100
 Err2 = (bearing_1.L10r - 12008.9256) / 12008.9256 * 100
 print("Err 1 = %.4f" % Err1, "%")
 print("Err 2 = %.4f" % Err2, "%")
-print(bearing_1.phi_cal)
+print(bearing_1.phi_cal_deg)
