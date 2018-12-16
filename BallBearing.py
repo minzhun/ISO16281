@@ -6,7 +6,7 @@ from scipy import special
 
 # bearing = BallBearing()
 # bearing.geometry()
-# bearing.material()
+# bearing.material() // no material in RollerBearing()
 # bearing.stiffness()
 # bearing.internal_clearance()
 # bearing.info() : print information
@@ -23,7 +23,7 @@ from scipy import special
 
 class BallBearing:
 
-    # Input for disp() : Fx, Fy, Fz, Mz
+    # Input for disp() : Fx, Fy, Fz, M
     # Output of disp() : Delta_r, Delta_a, Delta_psi
     # Input for capacity() : Capacity
     # Output of capacity() : Qci, Qce
@@ -31,7 +31,7 @@ class BallBearing:
     # Output for load() : Qei, Qee
     # Output for basic_ref_life() : L10r, Pref
 
-    def __init__(self, i, Z, Dw, Dpw, alpha, phi0, bearing_type):
+    def __init__(self, i, Z, Dw, Dpw, alpha_deg, phi0, bearing_type):
 
         # i : number of rows
         self.i = i
@@ -42,8 +42,8 @@ class BallBearing:
         #  Dpw : Pitch Circle Diameter , mm
         self.Dpw = Dpw
         # alpha : nominal contact angle , degree
-        self.alpha = alpha
-        self.alpha_rad = math.radians(alpha)
+        self.alpha_deg = alpha_deg
+        self.alpha = math.radians(alpha_deg)
         # phi0 : first element angle , degree
         self.phi0 = phi0
         # type
@@ -82,7 +82,7 @@ class BallBearing:
         self.phi_cal_deg = np.zeros(self.Z)
         self.Fr = 0.0
         self.Fa = 0.0
-        self.Mz = 0.0
+        self.M = 0.0
         self.angle_fr = 0.0
         self.Delta_r = 0.0
         self.Delta_a = 0.0
@@ -192,18 +192,21 @@ class BallBearing:
         print("bearing type :", self.type)
 
     # calculate displacement from equilibrium condition
-    def disp(self, Fx, Fy, Fz, Mz):
+    def disp(self, Fx, Fy, Fz, M):
         # Fr : radial load , N
         self.Fr = math.sqrt(Fx * Fx + Fy * Fy)
-        # radial load angle , deg
-        self.angle_fr = math.atan(Fy / Fx)
+        # radial load angle , rad
+        if Fx != 0.0:
+            self.angle_fr = math.atan(Fy / Fx)
+        else:
+            self.angle_fr = math.pi / 2.0
         #
         self.phi_cal = self.phi - self.angle_fr
         self.phi_cal_deg = np.degrees(self.phi_cal)
         # Fa : axial load , N
         self.Fa = Fz
-        # Mz : moment , N*mm
-        self.Mz = Mz
+        # M : moment , N*mm
+        self.M = M
         # delta0 : initial value
         delta0 = np.array([0.01, 0.01, 0.01])    # 初值不取零；若取零，径向间隙为零、受轴向力情况将得不出结果
         # solve the equilibrium function
@@ -230,21 +233,21 @@ class BallBearing:
     def capacity(self, C):
         # C : basic dynamic load rating , N
         self.C = C
-        temp_1 = math.pow(1+ math.pow(1.044 * pow((1-self.gamma)/(1+self.gamma), 1.72) * pow(self.ri/self.re*(2*self.re-self.Dw)/(2*self.ri-self.Dw), 0.41), 10/3), 0.3)
-        temp_2 = math.pow(1+ math.pow(1.044 * pow((1-self.gamma)/(1+self.gamma), 1.72) * pow(self.ri/self.re*(2*self.re-self.Dw)/(2*self.ri-self.Dw), 0.41), -10/3), 0.3)
-        temp_3 = math.pow(1+ math.pow(pow((1-self.gamma)/(1+self.gamma), 1.72) * pow(self.ri/self.re*(2*self.re-self.Dw)/(2*self.ri-self.Dw), 0.41), 10/3), 0.3)
-        temp_4 = math.pow(1+ math.pow(pow((1-self.gamma)/(1+self.gamma), 1.72) * pow(self.ri/self.re*(2*self.re-self.Dw)/(2*self.ri-self.Dw), 0.41), -10/3), 0.3)
-        temp_5 = math.pow(1+ math.pow(pow(self.ri/self.re*(2*self.re-self.Dw)/(2*self.ri-self.Dw), 0.41), 10/3), 0.3)
-        temp_6 = math.pow(1+ math.pow(pow(self.ri/self.re*(2*self.re-self.Dw)/(2*self.ri-self.Dw), 0.41), -10/3), 0.3)
+        temp_1 = math.pow(1 + math.pow(1.044 * pow((1-self.gamma)/(1+self.gamma), 1.72) * pow(self.ri/self.re*(2*self.re-self.Dw)/(2*self.ri-self.Dw), 0.41), 10/3), 0.3)
+        temp_2 = math.pow(1 + math.pow(1.044 * pow((1-self.gamma)/(1+self.gamma), 1.72) * pow(self.ri/self.re*(2*self.re-self.Dw)/(2*self.ri-self.Dw), 0.41), -10/3), 0.3)
+        temp_3 = math.pow(1 + math.pow(pow((1-self.gamma)/(1+self.gamma), 1.72) * pow(self.ri/self.re*(2*self.re-self.Dw)/(2*self.ri-self.Dw), 0.41), 10/3), 0.3)
+        temp_4 = math.pow(1 + math.pow(pow((1-self.gamma)/(1+self.gamma), 1.72) * pow(self.ri/self.re*(2*self.re-self.Dw)/(2*self.ri-self.Dw), 0.41), -10/3), 0.3)
+        temp_5 = math.pow(1 + math.pow(pow(self.ri/self.re*(2*self.re-self.Dw)/(2*self.ri-self.Dw), 0.41), 10/3), 0.3)
+        temp_6 = math.pow(1 + math.pow(pow(self.ri/self.re*(2*self.re-self.Dw)/(2*self.ri-self.Dw), 0.41), -10/3), 0.3)
         # Qci : rolling element load for the basic dynamic load rating of inner ring or shaft washer , N
         # Qce : rolling element load for the basic dynamic load rating of outer ring or housing washer , N
         if self.type == 1 or self.type == 2 or self.type == 3:
             self.Qci = self.C / 0.407 / self.Z / math.cos(self.alpha) / math.pow(self.i, 0.7) * temp_1
             self.Qce = self.C / 0.389 / self.Z / math.cos(self.alpha) / math.pow(self.i, 0.7) * temp_2
-        if (self.type == 4 or self.type == 5) and self.alpha != 90.0:
-            self.Qci = self.C / self.Z / math.sin(self.alpha_rad) * temp_3
-            self.Qce = self.C / self.Z / math.sin(self.alpha_rad) * temp_4
-        if (self.type == 4 or self.type == 5) and self.alpha == 90.0:
+        if (self.type == 4 or self.type == 5) and self.alpha_deg != 90.0:
+            self.Qci = self.C / self.Z / math.sin(self.alpha) * temp_3
+            self.Qce = self.C / self.Z / math.sin(self.alpha) * temp_4
+        if (self.type == 4 or self.type == 5) and self.alpha_deg == 90.0:
             self.Qci = self.C / self.Z * temp_5
             self.Qce = self.C / self.Z * temp_6
         print("Qci = %.4f" % self.Qci)
@@ -256,8 +259,8 @@ class BallBearing:
     # Q_Element : load of rolling element , N
     def element(self):
         self.Delta_Element = np.sqrt((self.A * math.cos(self.alpha0) + self.Delta_r * np.cos(self.phi_cal)) ** 2 +
-                                (self.A * math.sin(self.alpha0) + self.Delta_a + self.Ri * math.sin(self.Delta_psi) * np.cos(
-                                    self.phi_cal)) ** 2) - self.A
+                                     (self.A * math.sin(self.alpha0) + self.Delta_a + self.Ri * math.sin(self.Delta_psi) *
+                                      np.cos(self.phi_cal)) ** 2) - self.A
         self.Delta_Element = np.maximum(self.Delta_Element, 0.0)
         self.Alpha_Element = np.arctan(
                 (self.A * math.sin(self.alpha0) + self.Delta_a + self.Ri * math.sin(self.Delta_psi) * np.cos(self.phi_cal)) /
@@ -318,8 +321,8 @@ class BallBearing:
     # Equation 16-18 : equilibrium condition
     def equilibrium(self, delta):
         delta_j = np.sqrt((self.A * math.cos(self.alpha0) + delta[0] * np.cos(self.phi_cal)) ** 2 +
-                            (self.A * math.sin(self.alpha0) + delta[1] + self.Ri * math.sin(delta[2]) * np.cos(
-                                self.phi_cal)) ** 2) - self.A
+                          (self.A * math.sin(self.alpha0) + delta[1] + self.Ri * math.sin(delta[2]) * np.cos(
+                           self.phi_cal)) ** 2) - self.A
         delta_j = np.maximum(delta_j, 0)
         alpha_j = np.arctan(
             (self.A * math.sin(self.alpha0) + delta[1] + self.Ri * math.sin(delta[2]) * np.cos(self.phi_cal)) /
@@ -332,16 +335,14 @@ class BallBearing:
         temp_sum_3 = temp_sum_3.sum()
         return [self.Fr - self.cp * temp_sum_1,
                 self.Fa - self.cp * temp_sum_2,
-                self.Mz - self.Dpw / 2.0 * self.cp * temp_sum_3]
+                self.M - self.Dpw / 2.0 * self.cp * temp_sum_3]
 
     def residual(self):
         print("Equilibrium Residual = ", self.equilibrium([self.Delta_r, self.Delta_a, self.Delta_psi]))
 
 
 # Example 1 : 深沟球轴承，径向间隙为零，只受径向力
-# Delta : 16.9905 um
-# L10r : 12008.9256
-# BallBearing ( i, Z, Dw, Dpw, ri, re, alpha, phi0, type )
+# BallBearing ( i, Z, Dw, Dpw, ri, re, alpha_deg, phi0, type )
 print("----------------------------------------------------------------")
 print("Example 1")
 bearing_1 = BallBearing(1, 6, 11.1, 43.5, 0.0, 0.0, 1)
@@ -353,8 +354,4 @@ bearing_1.info()
 bearing_1.disp(500.0, 866.0, 0.0, 0.0)
 bearing_1.rating(23400)
 bearing_1.residual()
-Err1 = (bearing_1.Delta_r * 1000 - 16.9905) / 16.9905 * 100
-Err2 = (bearing_1.L10r - 12008.9256) / 12008.9256 * 100
-print("Err 1 = %.4f" % Err1, "%")
-print("Err 2 = %.4f" % Err2, "%")
 print(bearing_1.phi_cal_deg)

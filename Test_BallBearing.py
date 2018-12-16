@@ -1,4 +1,5 @@
 from BallBearing import *
+from RollerBearing import *
 
 # Example 1 : 深沟球轴承，径向间隙为零，只受径向力
 # Delta : 16.9905 um

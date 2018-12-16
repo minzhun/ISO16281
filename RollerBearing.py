@@ -6,7 +6,7 @@ from scipy import optimize
 # bearing.geometry()
 # bearing.stiffness()
 # bearing.internal_clearance()
-# bearing.roller_profile()
+# bearing.roller_profile()  // no profile in BallBearing()
 # bearing.info() : print information
 # bearing.disp() : calculate relative displacement
 # bearing.rating() : print basic ref rating life
@@ -20,11 +20,11 @@ from scipy import optimize
 
 class RollerBearing:
 
-    # Input for disp() : Fx, Fy, Mz
+    # Input for disp() : Fx, Fy, M
     # Output of disp() : Delta_r, Delta_psi
     # Input for capacity() : Capacity
     # Output of capacity() : Qci, Qce, qci, qce
-    # Output for element() : Delta_j, Psi_j, Delta_j_k, Q_j_k
+    # Output for element() : Delta_j, Psi_j, Delta_j_k, q_j_k
     # Output for load() : qkei, qkee
     # Output for basic_ref_life() : L10r, Pref
 
@@ -68,11 +68,12 @@ class RollerBearing:
 
         # defined and calculated in disp()
         self.Fr = 0.0
-        self.Mz = 0.0
+        self.M = 0.0
         self.Delta_r = 0.0
         self.Delta_psi = 0.0
         self.angle_fr = 0.0
         self.phi_cal = np.zeros(self.Z)
+        self.phi_cal_deg = np.zeros(self.Z)
 
         # defined and calculated in capacity()
         self.C = 0.0
@@ -89,7 +90,7 @@ class RollerBearing:
         self.Delta_j = np.zeros(self.Z)
         self.Psi_j = np.zeros(self.Z)
         self.Delta_j_k = np.zeros((self.Z, self.ns))
-        self.Q_j_k = np.zeros((self.Z, self.ns))
+        self.q_j_k = np.zeros((self.Z, self.ns))
 
         # calculated in load()
         self.qkei = np.zeros(self.ns)
@@ -120,19 +121,22 @@ class RollerBearing:
 
     # roller profile
     # Equation 42 - 44
-    def roller_profile(self):
+    def roller_profile(self, use_or_not=0):
         self.xk = (np.arange(self.ns) - self.ns / 2 + 0.5) * self.Lwe / self.ns  # ns 为偶数
-        if self.type == 1 or self.type == 3:
-            if self.Lwe <= 2.5 * self.Dwe:
-                self.profile = 0.00035 * self.Dwe * np.log(1.0 / (1.0 - np.power(2 * self.xk / self.Lwe, 2)))
-            else:
-                for i in list(range(self.ns)):
-                    if abs(self.xk[i]) <= (self.Lwe - 2.5 * self.Dwe) / 2.0:
-                        self.profile[i] = 0.0
-                    else:
-                        self.profile[i] = 0.0005 * self.Dwe * math.log(1.0 / 1.0 - math.pow((2.0 * abs(self.xk[i]) - self.Lwe - 2.5 * self.Dwe) / 2.5 / self.Dwe, 2))
-        elif self.type == 2 or self.type == 4:
-            self.profile = 0.00045 * self.Dwe * np.log(1.0 / (1.0 - np.power(2 * self.xk / self.Lwe, 2)))
+        if use_or_not == 1:
+            if self.type == 1 or self.type == 3:
+                if self.Lwe <= 2.5 * self.Dwe:
+                    self.profile = 0.00035 * self.Dwe * np.log(1.0 / (1.0 - np.power(2 * self.xk / self.Lwe, 2)))
+                else:
+                    for i in list(range(self.ns)):
+                        if abs(self.xk[i]) <= (self.Lwe - 2.5 * self.Dwe) / 2.0:
+                            self.profile[i] = 0.0
+                        else:
+                            self.profile[i] = 0.0005 * self.Dwe * math.log(1.0 / 1.0 - math.pow((2.0 * abs(self.xk[i]) - self.Lwe - 2.5 * self.Dwe) / 2.5 / self.Dwe, 2))
+            elif self.type == 2 or self.type == 4:
+                self.profile = 0.00045 * self.Dwe * np.log(1.0 / (1.0 - np.power(2 * self.xk / self.Lwe, 2)))
+        elif use_or_not == 0:
+            self.profile = np.zeros(self.ns)
 
     def info(self):
         print("phi = ", self.phi_deg)
@@ -143,16 +147,21 @@ class RollerBearing:
         print("bearing type :", self.type)
 
     # calculate displacement from equilibrium condition
-    def disp(self, Fx, Fy, Mz):
+    def disp(self, Fx, Fy, M):
         # Fr : radial load , N
         self.Fr = math.sqrt(Fx * Fx + Fy * Fy)
-        # radial load angle , deg
-        self.angle_fr = math.atan(Fy / Fx)
+        # radial load angle , rad
+        if Fx != 0.0:
+            self.angle_fr = math.atan(Fy / Fx)
+        else:
+            self.angle_fr = math.pi / 2.0
+        #
         self.phi_cal = self.phi - self.angle_fr
-        # Mz : moment , N*mm
-        self.Mz = Mz
+        self.phi_cal_deg = np.degrees(self.phi_cal)
+        # M : moment , N*mm
+        self.M = M
         # delta0 : initial value
-        delta0 = np.array([0.01, 0.01])    # 初值不取零；若取零，径向间隙为零、受轴向力情况将得不出结果
+        delta0 = np.array([0.01, 0.01])    # 待考查初值的影响
         # solve the equilibrium function
         sol = optimize.root(self.equilibrium, delta0, method='hybr', tol=1e-50)
         # Delta_r : relative radial displacement , mm
@@ -174,10 +183,10 @@ class RollerBearing:
     def capacity(self, C):
         # C : basic dynamic load rating , N
         self.C = C
-        temp_1 = math.pow(1+ math.pow(1.038 * pow((1-self.gamma)/(1+self.gamma), 143/108), 9/2), 2/9)
-        temp_2 = math.pow(1+ math.pow(1.038 * pow((1-self.gamma)/(1+self.gamma), 143/108), -9/2), 2/9)
-        temp_3 = math.pow(1+ math.pow(pow((1-self.gamma)/(1+self.gamma), 143/108), 9/2), 2/9)
-        temp_4 = math.pow(1+ math.pow(pow((1-self.gamma)/(1+self.gamma), 143/108), -9/2), 2/9)
+        temp_1 = math.pow(1 + math.pow(1.038 * pow((1-self.gamma)/(1+self.gamma), 143/108), 9/2), 2/9)
+        temp_2 = math.pow(1 + math.pow(1.038 * pow((1-self.gamma)/(1+self.gamma), 143/108), -9/2), 2/9)
+        temp_3 = math.pow(1 + math.pow(pow((1-self.gamma)/(1+self.gamma), 143/108), 9/2), 2/9)
+        temp_4 = math.pow(1 + math.pow(pow((1-self.gamma)/(1+self.gamma), 143/108), -9/2), 2/9)
         temp_5 = pow(2, 2/9)
         temp_6 = pow(2, 2/9)
         # Qci : rolling element load for the basic dynamic load rating of inner ring or shaft washer , N
@@ -203,7 +212,7 @@ class RollerBearing:
         print("qci = %.4f" % self.qci)
         print("qce = %.4f" % self.qce)
 
-    # concentration of edge stress
+    # concentration of edge stress // not in BallBearing()
     # Equation 60
     def concentration_edge_stress(self, use_or_not=0):
         if use_or_not == 1:
@@ -219,14 +228,16 @@ class RollerBearing:
     # Delta_j : array , elastic deflection of the rolling element j , mm
     # Psi_j : array , total misalignment angle between the raceways of rolling element j , rad
     # Delta_j_k : matrix , elastic deflection of the lamina k of rolling element j , mm
-    # Q_j_k : matrix , load on lamina k of rolling element j , N
+    # q_j_k : matrix , load on lamina k of rolling element j , N
     def element(self):
-        self.Delta_j = self.Delta_r * np.cos(self.phi) - 0.5 * self.s
-        self.Psi_j = np.arctan(np.tan(self.Delta_psi) * np.cos(self.phi))
+        self.Delta_j = self.Delta_r * np.cos(self.phi_cal) - 0.5 * self.s
+        self.Psi_j = np.arctan(np.tan(self.Delta_psi) * np.cos(self.phi_cal))
         for j in list(range(self.Z)):
-            self.Delta_j_k[j,:] = self.Delta_j[j] - self.xk * np.tan(self.Psi_j[j]) - 2 * self.profile
+            self.Delta_j_k[j, :] = self.Delta_j[j] - self.xk * np.tan(self.Psi_j[j]) - 2 * self.profile
         self.Delta_j_k = np.maximum(self.Delta_j_k, 0.0)
-        self.Q_j_k = self.cs * np.power(self.Delta_j_k, 10/9)
+        self.q_j_k = self.cs * np.power(self.Delta_j_k, 10 / 9)
+        print("Delta_j_k = ", self.Delta_j_k)
+        print("q_j_k", self.q_j_k)
 
     # Equation 61-64 : calculate dynamic equivalent load on a lamina
     # state = 1 , inner is rotating
@@ -239,10 +250,10 @@ class RollerBearing:
         temp_3 = np.zeros(self.ns)
         temp_4 = np.zeros(self.ns)
         for k in list(range(self.ns)):
-            sum_1 = np.power(np.power(self.f_i[k] * self.Q_j_k[:, k], 4).sum() / self.Z, 0.25)
-            sum_2 = np.power(np.power(self.f_i[k] * self.Q_j_k[:, k], 4.5).sum() / self.Z, 1/4.5)
-            sum_3 = np.power(np.power(self.f_e[k] * self.Q_j_k[:, k], 4.5).sum() / self.Z, 1/4.5)
-            sum_4 = np.power(np.power(self.f_e[k] * self.Q_j_k[:, k], 4).sum() / self.Z, 0.25)
+            sum_1 = np.power(np.power(self.f_i[k] * self.q_j_k[:, k], 4).sum() / self.Z, 0.25)
+            sum_2 = np.power(np.power(self.f_i[k] * self.q_j_k[:, k], 4.5).sum() / self.Z, 1 / 4.5)
+            sum_3 = np.power(np.power(self.f_e[k] * self.q_j_k[:, k], 4.5).sum() / self.Z, 1 / 4.5)
+            sum_4 = np.power(np.power(self.f_e[k] * self.q_j_k[:, k], 4).sum() / self.Z, 0.25)
             temp_1[k] = sum_1
             temp_2[k] = sum_2
             temp_3[k] = sum_3
@@ -272,8 +283,8 @@ class RollerBearing:
         temp_sum_1 = 0.0
         temp_sum_2 = 0.0
         #
-        Delta_j = delta[0] * np.cos(self.phi) - 0.5 * self.s
-        Psi_j = np.arctan(math.tan(delta[1]) * np.cos(self.phi))
+        Delta_j = delta[0] * np.cos(self.phi_cal) - 0.5 * self.s
+        Psi_j = np.arctan(math.tan(delta[1]) * np.cos(self.phi_cal))
         #
         Delta_j_k = np.zeros((self.Z, self.ns))
         for j in list(range(self.Z)):
@@ -281,19 +292,17 @@ class RollerBearing:
         Delta_j_k = np.maximum(Delta_j_k, 0.0)
         #
         for j in list(range(self.Z)):
-            temp_sum_1 = temp_sum_1 + np.sum(np.cos(self.phi[j]) * np.power(Delta_j_k[j, :], 10/9))
-            temp_sum_2 = temp_sum_2 + np.sum(np.cos(self.phi[j]) * np.power(Delta_j_k[j, :], 10/9) * self.xk)
+            temp_sum_1 = temp_sum_1 + np.sum(np.cos(self.phi_cal[j]) * np.power(Delta_j_k[j, :], 10/9))
+            temp_sum_2 = temp_sum_2 + np.sum(np.cos(self.phi_cal[j]) * np.power(Delta_j_k[j, :], 10/9) * self.xk)
         #
         return [self.Fr - self.cl / self.ns * temp_sum_1,
-                self.Mz - self.cl / self.ns * temp_sum_2]
+                self.M - self.cl / self.ns * temp_sum_2]
 
     def residual(self):
         print("Equilibrium Residual = ", self.equilibrium([self.Delta_r, self.Delta_psi]))
 
 
 # Example 1 :
-# Delta :  um
-# L10r :
 # RollerBearing ( i, Z, Dwe, Dpw, Lwe, alpha_deg, phi0, bearing_type, ns=30 )
 print("----------------------------------------------------------------")
 print("Example 1")
@@ -306,19 +315,5 @@ bearing_1.info()
 bearing_1.disp(1000.0, 0.0, 0.0)
 bearing_1.rating(31500)
 bearing_1.residual()
+print(bearing_1.phi_cal_deg)
 print(bearing_1.Delta_j)
-#---------------------------------------------
-# bearing_1.capacity(31500)
-# bearing_1.concentration_edge_stress()
-# bearing_1.Delta_r = 0.02
-# bearing_1.Delta_psi = 0.0
-# bearing_1.element()
-# bearing_1.load()
-# bearing_1.basic_ref_life()
-#----------------------------------------------
-# Err1 = (bearing_1.Delta_r * 1000 - 16.9905) / 16.9905 * 100
-# Err2 = (bearing_1.L10r - 12008.9256) / 12008.9256 * 100
-# print("Err 1 = %.4f" % Err1, "%")
-# print("Err 2 = %.4f" % Err2, "%")
-# print(bearing_1.phi_cal)
-
