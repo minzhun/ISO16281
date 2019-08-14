@@ -140,7 +140,7 @@ class BallBearing:
         self.s_r = s_r
         self.__internal_clearance()
         # gamma : auxiliary parameter , 1
-        self.gamma = self.Dw * math.cos(self.alpha0) / self.Dpw
+        self.gamma = self.Dw * math.cos(self.alpha) / self.Dpw
         # sigma_rho_i : curvature sum at inner ring contact , 1/mm
         self.sigma_rho_i = 2.0 / self.Dw * (2.0 + self.gamma / (1 - self.gamma) - self.Dw / 2.0 / self.ri)
         # sigma_rho_e : curvature sum at outer ring contact , 1/mm
@@ -230,9 +230,9 @@ class BallBearing:
         self.Delta_a_MASTA = self.Delta_a + self.s_a * 0.5
         # Delta_psi : total misalignment , rad
         self.Delta_psi = sol.x[2]
-        print("Delta_r = %.4f" % self.Delta_r)
-        print("Delta_a = %.4f" % self.Delta_a_MASTA)
-        print("Delta_psi = %.4f" % self.Delta_psi)
+        print("Delta_r = %.8f" % self.Delta_r)
+        print("Delta_a = %.8f" % self.Delta_a_MASTA)
+        print("Delta_psi = %.8f" % self.Delta_psi)
 
     # bearing rating
     def rating(self, basic_capacity):
@@ -254,8 +254,8 @@ class BallBearing:
         # Qci : rolling element load for the basic dynamic load rating of inner ring or shaft washer , N
         # Qce : rolling element load for the basic dynamic load rating of outer ring or housing washer , N
         if self.type == 1 or self.type == 2 or self.type == 3:
-            self.Qci = self.C / 0.407 / self.Z / math.cos(self.alpha) / math.pow(self.i, 0.7) * temp_1
-            self.Qce = self.C / 0.389 / self.Z / math.cos(self.alpha) / math.pow(self.i, 0.7) * temp_2
+            self.Qci = self.C / 0.407 / self.Z / math.pow(math.cos(self.alpha), 0.7) / math.pow(self.i, 0.7) * temp_1
+            self.Qce = self.C / 0.389 / self.Z / math.pow(math.cos(self.alpha), 0.7) / math.pow(self.i, 0.7) * temp_2
         if (self.type == 4 or self.type == 5) and self.alpha_deg != 90.0:
             self.Qci = self.C / self.Z / math.sin(self.alpha) * temp_3
             self.Qce = self.C / self.Z / math.sin(self.alpha) * temp_4
@@ -353,21 +353,29 @@ class BallBearing:
         print("Equilibrium Residual = ", self.__equilibrium([self.Delta_r, self.Delta_a, self.Delta_psi]))
 
 
-# Example 1 : 深沟球轴承，径向间隙为零，只受径向力
-# BallBearing ( i, Z, Dw, Dpw, alpha_deg, phi0, type )
-print("----------------------------------------------------------------")
-print("Example 1")
-material_1 = Material("Steel", 210000.0, 0.3)
-bearing_1 = BallBearing(1, 6, 11.1, 43.5, 0.0, 0.0, 1)
-bearing_1.geometry(0.0)
-bearing_1.stiffness(material_1)
-bearing_1.info()
-print("###")
-load_1 = Load(1000.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-bearing_1.disp(load_1)
-print("###")
-basic_capacity_1 = BasicCapacity(23400)
-bearing_1.rating(basic_capacity_1)
-print("###")
-bearing_1.residual()
+# mode = 1 test local
+mode = 1
+if mode == 1:
+    # Example 1 : 深沟球轴承，径向间隙为零，只受径向力
+    # BallBearing ( i, Z, Dw, Dpw, alpha_deg, phi0, type )
+    # Test with 6305
+    print("----------------------------------------------------------------")
+    print("Example")
+    material_1 = Material("Steel", 210000.0, 0.3)
+    bearing_1 = BallBearing(1, 7, 11.5, 43.5, 0.0, 0.0, 1)
+    bearing_1.geometry(0.01)
+    bearing_1.stiffness(material_1)
+    bearing_1.info()
+    print("###")
+    load_1 = Load(1000.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    load_2 = Load(0.0, 0.0, 1000.0, 0.0, 0.0, 0.0)
+    load_3 = Load(1000.0, 0.0, 1000.0, 0.0, 0.0, 0.0)
+    load_4 = Load(0.0, 0.0, 0.0, 1000.0, 0.0, 0.0)
+    load_5 = Load(1000.0, 0.0, 1000.0, 1000.0, 0.0, 0.0)
+    bearing_1.disp(load_5)
+    print("###")
+    basic_capacity_1 = BasicCapacity(23400)
+    bearing_1.rating(basic_capacity_1)
+    print("###")
+    bearing_1.residual()
 
