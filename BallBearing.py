@@ -354,7 +354,7 @@ class BallBearing:
 
 
 # mode = 1 test local
-mode = 1
+mode = 0
 if mode == 1:
     # Example 1 : 深沟球轴承，径向间隙为零，只受径向力
     # BallBearing ( i, Z, Dw, Dpw, alpha_deg, phi0, type )
