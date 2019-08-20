@@ -329,7 +329,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "ISO/TS 16281 Ball Bearing"))
         self.groupBox.setTitle(_translate("MainWindow", "Geometry"))
         self.label.setText(_translate("MainWindow", "Number of Rows"))
         self.label_2.setText(_translate("MainWindow", "Number of Elements"))
