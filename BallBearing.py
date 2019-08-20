@@ -16,11 +16,9 @@ from Head import Material, Load, BasicCapacity
 # bearing.residual()
 
 # bearing_type
-# 1 - deep groove ball bearing, angular contact ball bearing, separable ball bearing
-# 2 - spherical roller bearing
-# 3 - self aligning ball bearing
-# 4 - thrust ball bearing, thrust angular contact ball bearing
-# 5 - thrust spherical roller bearing
+# 1 - deep groove ball bearing, angular contact ball bearing
+# 2 - thrust ball bearing, thrust angular contact ball bearing
+
 
 class BallBearing:
 
@@ -118,19 +116,8 @@ class BallBearing:
             self.re = 0.53 * self.Dw
             self.ri = 0.52 * self.Dw
         elif self.type == 2:
-            self.re = self.Dpw / 2.0 / math.cos(self.alpha) + 0.5 * self.Dw
-            self.ri = self.re
-            self.Dw = 2 * 0.97 * self.re
-        elif self.type == 3:
-            self.re = 0.5 * self.Dw * (1.0 + 1.0 / self.gamma)
-            self.ri = 0.53 * self.Dw
-        elif self.type == 4:
             self.re = 0.54 * self.Dw
             self.ri = 0.54 * self.Dw
-        elif self.type == 5:
-            self.re = (self.Dpw + self.Dw * math.cos(math.radians(45.0))) / 2 / math.cos(self.alpha)
-            self.ri = self.re
-            self.Dw = 2 * 0.97 * self.re
         # phi : angular position of elements , deg
         self.phi_deg = self.phi0 + np.linspace(0.0, 360.0, self.Z, endpoint=False)
         self.phi = np.radians(self.phi_deg)
@@ -175,34 +162,6 @@ class BallBearing:
             self.__k(self.chi_i) * np.power(self.sigma_rho_i / self.chi_i ** 2 / self.__e(self.chi_i), 1 / 3) +
             self.__k(self.chi_e) * np.power(self.sigma_rho_e / self.chi_e ** 2 / self.__e(self.chi_e), 1 / 3), -1.5)
 
-    # print bearing information
-    def info(self):
-        print("i  =  %2d" % self.i)
-        print("Z  =  %2d" % self.Z)
-        print("Dw  =  %.2f " % self.Dw)
-        print("Dpw  =  %.2f" % self.Dpw)
-        print("alpha_deg  =  %.2f" % self.alpha_deg)
-        print("phi0  =  %.2f" % self.phi0)
-        print("bearing type  =  %1d" % self.type)
-        print("s_r  =  %.4f" % self.s_r)
-        print("ri  =  %.4f" % self.ri)
-        print("re  =  %.4f" % self.re)
-        print("phi  =  ", self.phi_deg)
-        print("A  =  %.4f" % self.A)
-        print("alpha0_deg  =  %.4f" % self.alpha0_deg)
-        print("s_a  =  %.4f" % self.s_a)
-        print("Ri  =  %.4f" % self.Ri)
-        print("gamma  =  %.4f" % self.gamma)
-        print("sigma_rho_i  =  %.4f" % self.sigma_rho_i)
-        print("sigma_rho_e  =  %.4f" % self.sigma_rho_e)
-        print("Fi_rho  =  %.4f" % self.Fi_rho)
-        print("Fe_rho  =  %.4f" % self.Fe_rho)
-        print("chi_i  =  %.4f" % self.chi_i)
-        print("chi_e  =  %.4f" % self.chi_e)
-        print("mat_E  =  %.2f" % self.mat_E)
-        print("mat_nu  =  %.2f" % self.mat_nu)
-        print("cp  =  %.4f" % self.cp)
-
     # calculate displacement from equilibrium condition
     def disp(self, load):
         # Fr : radial load , N
@@ -230,9 +189,9 @@ class BallBearing:
         self.Delta_a_MASTA = self.Delta_a + self.s_a * 0.5
         # Delta_psi : total misalignment , rad
         self.Delta_psi = sol.x[2]
-        print("Delta_r = %.8f" % self.Delta_r)
-        print("Delta_a = %.8f" % self.Delta_a_MASTA)
-        print("Delta_psi = %.8f" % self.Delta_psi)
+        # print("Delta_r = %.8f" % self.Delta_r)
+        # print("Delta_a = %.8f" % self.Delta_a_MASTA)
+        # print("Delta_psi = %.8f" % self.Delta_psi)
 
     # bearing rating
     def rating(self, basic_capacity):
@@ -253,17 +212,17 @@ class BallBearing:
         temp_6 = math.pow(1 + math.pow(pow(self.ri/self.re*(2*self.re-self.Dw)/(2*self.ri-self.Dw), 0.41), -10/3), 0.3)
         # Qci : rolling element load for the basic dynamic load rating of inner ring or shaft washer , N
         # Qce : rolling element load for the basic dynamic load rating of outer ring or housing washer , N
-        if self.type == 1 or self.type == 2 or self.type == 3:
+        if self.type == 1:
             self.Qci = self.C / 0.407 / self.Z / math.pow(math.cos(self.alpha), 0.7) / math.pow(self.i, 0.7) * temp_1
             self.Qce = self.C / 0.389 / self.Z / math.pow(math.cos(self.alpha), 0.7) / math.pow(self.i, 0.7) * temp_2
-        if (self.type == 4 or self.type == 5) and self.alpha_deg != 90.0:
+        if self.type == 2 and self.alpha_deg != 90.0:
             self.Qci = self.C / self.Z / math.sin(self.alpha) * temp_3
             self.Qce = self.C / self.Z / math.sin(self.alpha) * temp_4
-        if (self.type == 4 or self.type == 5) and self.alpha_deg == 90.0:
+        if self.type == 2 and self.alpha_deg == 90.0:
             self.Qci = self.C / self.Z * temp_5
             self.Qce = self.C / self.Z * temp_6
-        print("Qci = %.4f" % self.Qci)
-        print("Qce = %.4f" % self.Qce)
+        # print("Qci = %.4f" % self.Qci)
+        # print("Qce = %.4f" % self.Qce)
 
     # Equation 12 and Equation 10 : calculate deflection and load of rolling element
     # Delta_Element : elastic deflection of rolling element , mm
@@ -279,6 +238,7 @@ class BallBearing:
                 (self.A * math.cos(self.alpha0) + self.Delta_r * np.cos(self.phi_cal)))
         self.Alpha_Element = np.degrees(self.Alpha_Element)
         self.Q_Element = self.cp * np.power(self.Delta_Element, 1.5)
+        np.set_printoptions(formatter={'float': '{: 0.4f}'.format})
         print("Delta_Element = ", self.Delta_Element)
         print("Alpha_Element = ", self.Alpha_Element)
         print("Q_Element = ", self.Q_Element)
@@ -302,8 +262,8 @@ class BallBearing:
         if state == 0:
             self.Qei = t_2
             self.Qee = t_1
-        print("Qei = %.4f" % self.Qei)
-        print("Qee = %.4f" % self.Qee)
+        # print("Qei = %.4f" % self.Qei)
+        # print("Qee = %.4f" % self.Qee)
 
     # Equation 29 : calculate basic reference rating life
     # L10r : basic reference rating life , 1e6 cycle
@@ -311,8 +271,8 @@ class BallBearing:
     def __basic_ref_life(self):
         self.L10r = math.pow(math.pow(self.Qci/self.Qei, -10/3) + math.pow(self.Qce/self.Qee, -10/3), -9/10)
         self.Pref = self.C / math.pow(self.L10r, 1/3)
-        print("L10r = %.4f" % self.L10r)
-        print("Pref_r = %.4f" % self.Pref)
+        # print("L10r = %.4f" % self.L10r)
+        # print("Pref_r = %.4f" % self.Pref)
 
     # Equation 3 : complete elliptic integral of the first kind
     def __k(self, chi):
@@ -352,30 +312,74 @@ class BallBearing:
     def residual(self):
         print("Equilibrium Residual = ", self.__equilibrium([self.Delta_r, self.Delta_a, self.Delta_psi]))
 
+    # print bearing information
+    def info(self):
 
-# mode = 1 test local
-mode = 0
-if mode == 1:
+        np.set_printoptions(formatter={'float': '{: 0.4f}'.format})
+
+        print("i  =  %2d" % self.i)
+        print("Z  =  %2d" % self.Z)
+        print("Dw  =  %.2f " % self.Dw)
+        print("Dpw  =  %.2f" % self.Dpw)
+        print("alpha_deg  =  %.2f" % self.alpha_deg)
+        print("phi0  =  %.2f" % self.phi0)
+        print("bearing type  =  %1d" % self.type)
+        print("s_r  =  %.4f" % self.s_r)
+        print("ri  =  %.4f" % self.ri)
+        print("re  =  %.4f" % self.re)
+        print("phi  =  ", self.phi_deg)
+        print("A  =  %.4f" % self.A)
+        print("alpha0_deg  =  %.4f" % self.alpha0_deg)
+        print("s_a  =  %.4f" % self.s_a)
+        print("Ri  =  %.4f" % self.Ri)
+        print("gamma  =  %.4f" % self.gamma)
+        print("sigma_rho_i  =  %.4f" % self.sigma_rho_i)
+        print("sigma_rho_e  =  %.4f" % self.sigma_rho_e)
+        print("Fi_rho  =  %.4f" % self.Fi_rho)
+        print("Fe_rho  =  %.4f" % self.Fe_rho)
+        print("chi_i  =  %.4f" % self.chi_i)
+        print("chi_e  =  %.4f" % self.chi_e)
+        print("mat_E  =  %.2f" % self.mat_E)
+        print("mat_nu  =  %.2f" % self.mat_nu)
+        print("cp  =  %.4f" % self.cp)
+        print("Delta_r = %.8f" % self.Delta_r)
+        print("Delta_a = %.8f" % self.Delta_a_MASTA)
+        print("Delta_psi = %.8f" % self.Delta_psi)
+        print("Qci = %.4f" % self.Qci)
+        print("Qce = %.4f" % self.Qce)
+        print("Delta_Element = ", self.Delta_Element)
+        print("Alpha_Element = ", self.Alpha_Element)
+        print("Q_Element = ", self.Q_Element)
+        print("Qei = %.4f" % self.Qei)
+        print("Qee = %.4f" % self.Qee)
+        print("L10r = %.4f" % self.L10r)
+        print("Pref_r = %.4f" % self.Pref)
+
+
+if __name__ == "__main__":
+
     # Example 1 : 深沟球轴承，径向间隙为零，只受径向力
     # BallBearing ( i, Z, Dw, Dpw, alpha_deg, phi0, type )
     # Test with 6305
+
     print("----------------------------------------------------------------")
     print("Example")
     material_1 = Material("Steel", 210000.0, 0.3)
     bearing_1 = BallBearing(1, 7, 11.5, 43.5, 0.0, 0.0, 1)
     bearing_1.geometry(0.01)
     bearing_1.stiffness(material_1)
-    bearing_1.info()
-    print("###")
+    #
     load_1 = Load(1000.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     load_2 = Load(0.0, 0.0, 1000.0, 0.0, 0.0, 0.0)
     load_3 = Load(1000.0, 0.0, 1000.0, 0.0, 0.0, 0.0)
     load_4 = Load(0.0, 0.0, 0.0, 1000.0, 0.0, 0.0)
     load_5 = Load(1000.0, 0.0, 1000.0, 1000.0, 0.0, 0.0)
     bearing_1.disp(load_5)
-    print("###")
+    #
     basic_capacity_1 = BasicCapacity(23400)
     bearing_1.rating(basic_capacity_1)
     print("###")
     bearing_1.residual()
+    print("###")
+    bearing_1.info()
 

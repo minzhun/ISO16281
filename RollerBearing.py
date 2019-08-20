@@ -16,9 +16,8 @@ from Head import Material, Load, BasicCapacity
 
 # bearing type
 # 1 - cylindrical roller bearing, needle roller bearing
-# 2 - tapered roller bearing
-# 3 - thrust cylindrical roller bearing, thrust needle roller bearing
-# 4 - thrust tapered roller bearing
+# 2 - thrust cylindrical roller bearing, thrust needle roller bearing
+
 
 class RollerBearing:
 
@@ -53,7 +52,7 @@ class RollerBearing:
         self.ns = ns
 
         # geometry()
-        # input for geometry()
+        # input from geometry()
         self.s = 0.0
         # calculated in geometry()
         self.gamma = 0.0
@@ -119,7 +118,7 @@ class RollerBearing:
     def __roller_profile(self, use_or_not):
         self.xk = (np.arange(self.ns) - self.ns / 2 + 0.5) * self.Lwe / self.ns  # ns 为偶数
         if use_or_not == 1:
-            if self.type == 1 or self.type == 3:
+            if self.type == 1:
                 if self.Lwe <= 2.5 * self.Dwe:
                     self.profile = 0.00035 * self.Dwe * np.log(1.0 / (1.0 - np.power(2 * self.xk / self.Lwe, 2)))
                 else:
@@ -128,7 +127,7 @@ class RollerBearing:
                             self.profile[i] = 0.0
                         else:
                             self.profile[i] = 0.0005 * self.Dwe * math.log(1.0 / 1.0 - math.pow((2.0 * abs(self.xk[i]) - self.Lwe - 2.5 * self.Dwe) / 2.5 / self.Dwe, 2))
-            elif self.type == 2 or self.type == 4:
+            elif self.type == 2:
                 self.profile = 0.00045 * self.Dwe * np.log(1.0 / (1.0 - np.power(2 * self.xk / self.Lwe, 2)))
         elif use_or_not == 0:
             self.profile = np.zeros(self.ns)
@@ -180,11 +179,11 @@ class RollerBearing:
         self.Delta_r = sol.x[0]
         # Delta_psi : total misalignment , rad
         self.Delta_psi = sol.x[1]
-        print("Delta_r = %.4f" % self.Delta_r)
-        print("Delta_psi = %.4f" % self.Delta_psi)
+        print("Delta_r = %.6f" % self.Delta_r)
+        print("Delta_psi = %.6f" % self.Delta_psi)
 
     # bearing rating
-    def rating(self, basic_capacity, use_concentration_edge_stress_or_not=0):
+    def rating(self, basic_capacity, use_concentration_edge_stress_or_not=1):
         self.__capacity(basic_capacity)
         self.__concentration_edge_stress(use_concentration_edge_stress_or_not)
         self.__element()
@@ -203,15 +202,15 @@ class RollerBearing:
         temp_6 = pow(2, 2/9)
         # Qci : rolling element load for the basic dynamic load rating of inner ring or shaft washer , N
         # Qce : rolling element load for the basic dynamic load rating of outer ring or housing washer , N
-        if self.type == 1 or self.type == 2:
+        if self.type == 1:
             const_rambda_v = 0.83
             self.Qci = self.C / const_rambda_v / 0.378 / self.Z / math.cos(self.alpha) / math.pow(self.i, 7/9) * temp_1
             self.Qce = self.C / const_rambda_v / 0.364 / self.Z / math.cos(self.alpha) / math.pow(self.i, 7/9) * temp_2
-        if (self.type == 3 or self.type == 4) and self.alpha != 90.0:
+        if self.type == 2 and self.alpha != 90.0:
             const_rambda_v = 0.73
             self.Qci = self.C / const_rambda_v / self.Z / math.sin(self.alpha) * temp_3
             self.Qce = self.C / const_rambda_v / self.Z / math.sin(self.alpha) * temp_4
-        if (self.type == 3 or self.type == 4) and self.alpha == 90.0:
+        if self.type == 2 and self.alpha == 90.0:
             const_rambda_v = 0.73
             self.Qci = self.C / const_rambda_v / self.Z * temp_5
             self.Qce = self.C / const_rambda_v / self.Z * temp_6
@@ -314,21 +313,25 @@ class RollerBearing:
         print("Equilibrium Residual = ", self.__equilibrium([self.Delta_r, self.Delta_psi]))
 
 
-# Example 1 :
-# RollerBearing ( i, Z, Dwe, Dpw, Lwe, alpha_deg, phi0, bearing_type, ns=30 )
-print("----------------------------------------------------------------")
-print("Example 1")
-material_1 = Material("Steel", 210000.0, 0.3)
-bearing_1 = RollerBearing(1, 6, 9.0, 43.5, 13.6, 0.0, 30.0, 1, 30)
-bearing_1.geometry(0.0)
-bearing_1.stiffness(material_1)
-bearing_1.info()
-print("###")
-load_1 = Load(1000.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-bearing_1.disp(load_1)
-print("###")
-basic_capacity_1 = BasicCapacity(31500)
-bearing_1.rating(basic_capacity_1)
-print("###")
-bearing_1.residual()
+if __name__ == "__main__":
+
+    # Example 1 : 圆柱滚子轴承，只受径向力
+    # RollerBearing ( i, Z, Dwe, Dpw, Lwe, alpha_deg, phi0, bearing_type, ns=40 )
+    # Test with N305
+
+    print("----------------------------------------------------------------")
+    print("Example")
+    material_1 = Material("Steel", 210000.0, 0.3)
+    bearing_1 = RollerBearing(1, 6, 9.0, 43.5, 13.6, 0.0, 0.0, 1, 40)
+    bearing_1.geometry(0.01)
+    bearing_1.stiffness(material_1)
+    bearing_1.info()
+    print("###")
+    load_1 = Load(1000.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    bearing_1.disp(load_1)
+    print("###")
+    basic_capacity_1 = BasicCapacity(31500)
+    bearing_1.rating(basic_capacity_1)
+    print("###")
+    bearing_1.residual()
 

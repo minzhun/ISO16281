@@ -187,7 +187,7 @@
         </rect>
        </property>
        <property name="text">
-        <string>1</string>
+        <string>7</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -396,7 +396,7 @@
         </rect>
        </property>
        <property name="text">
-        <string>0.0</string>
+        <string>1000.0</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -428,7 +428,7 @@
         </rect>
        </property>
        <property name="text">
-        <string>0.0</string>
+        <string>1000.0</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -566,7 +566,7 @@
         </rect>
        </property>
        <property name="text">
-        <string>0.0</string>
+        <string>210000.0</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -582,7 +582,7 @@
         </rect>
        </property>
        <property name="text">
-        <string>0.0</string>
+        <string>0.3</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -630,7 +630,7 @@
         </rect>
        </property>
        <property name="text">
-        <string>0.0</string>
+        <string>23400.0</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -1103,11 +1103,6 @@
        </item>
       </layout>
      </widget>
-    </widget>
-    <widget class="QWidget" name="RollerBearing">
-     <attribute name="title">
-      <string>Roller Bearing</string>
-     </attribute>
     </widget>
    </widget>
   </widget>

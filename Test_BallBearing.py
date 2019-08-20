@@ -1,5 +1,4 @@
 from BallBearing import *
-# from RollerBearing import *
 
 material_1 = Material("Steel", 210000.0, 0.3)
 #
