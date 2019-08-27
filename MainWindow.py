@@ -16,6 +16,7 @@ def geometry_clicked():
     temp8 = int(ui.lineEdit_8.text())
 
     temp_ball_bearing = BallBearing(temp1, temp2, temp3, temp4, temp5, temp6, temp8)
+    temp_ball_bearing.check()
     temp_ball_bearing.geometry(temp7)
     res1 = temp_ball_bearing.s_a
     res2 = temp_ball_bearing.alpha0_deg

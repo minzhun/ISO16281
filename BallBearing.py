@@ -108,6 +108,17 @@ class BallBearing:
         self.L10r = 0.0
         self.Pref = 0.0
 
+    # check geometry
+    def check(self):
+
+        if self.type == 2 and self.alpha_deg == 0.0:
+            print("Error: Thrust Bearing with Zero Nominal Contact Angle.")
+            flag = 1
+        else:
+            flag = 0
+
+        return flag
+
     # bearing geometry
     def geometry(self, s_r):
         # ri : inner groove diameter , mm
@@ -365,7 +376,10 @@ if __name__ == "__main__":
     print("----------------------------------------------------------------")
     print("Example")
     material_1 = Material("Steel", 210000.0, 0.3)
-    bearing_1 = BallBearing(1, 7, 11.5, 43.5, 0.0, 0.0, 1)
+    bearing_1 = BallBearing(1, 7, 11.5, 43.5, 0.0, 0.0, 2)
+    flag = bearing_1.check()
+    if flag > 0:
+        exit()
     bearing_1.geometry(0.01)
     bearing_1.stiffness(material_1)
     #
