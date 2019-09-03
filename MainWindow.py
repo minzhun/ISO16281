@@ -13,9 +13,13 @@ def geometry_clicked():
     temp5 = float(ui.lineEdit_5.text())
     temp6 = float(ui.lineEdit_6.text())
     temp7 = float(ui.lineEdit_7.text())
-    temp8 = int(ui.lineEdit_8.text())
+    temp8 = ui.comboBox.currentText()
+    if temp8 == "Deep Groove":
+        temp81 = 1
+    else:
+        temp81 = 2
 
-    temp_ball_bearing = BallBearing(temp1, temp2, temp3, temp4, temp5, temp6, temp8)
+    temp_ball_bearing = BallBearing(temp1, temp2, temp3, temp4, temp5, temp6, temp81)
     temp_ball_bearing.check()
     temp_ball_bearing.geometry(temp7)
     res1 = temp_ball_bearing.s_a

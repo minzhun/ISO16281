@@ -273,7 +273,7 @@
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
        </property>
       </widget>
-      <widget class="QLineEdit" name="lineEdit_8">
+      <widget class="QComboBox" name="comboBox">
        <property name="geometry">
         <rect>
          <x>350</x>
@@ -282,12 +282,16 @@
          <height>21</height>
         </rect>
        </property>
-       <property name="text">
-        <string>1</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-       </property>
+       <item>
+        <property name="text">
+         <string>Deep Groove</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Thrust</string>
+        </property>
+       </item>
       </widget>
      </widget>
      <widget class="QGroupBox" name="groupBox_2">

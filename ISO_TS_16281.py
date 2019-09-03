@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ISO_TS_16281.ui'
 #
-# Created by: PyQt5 UI code generator 5.11.3
+# Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -85,10 +85,11 @@ class Ui_MainWindow(object):
         self.lineEdit_7.setGeometry(QtCore.QRect(350, 210, 120, 21))
         self.lineEdit_7.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.lineEdit_7.setObjectName("lineEdit_7")
-        self.lineEdit_8 = QtWidgets.QLineEdit(self.groupBox)
-        self.lineEdit_8.setGeometry(QtCore.QRect(350, 240, 120, 21))
-        self.lineEdit_8.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.lineEdit_8.setObjectName("lineEdit_8")
+        self.comboBox = QtWidgets.QComboBox(self.groupBox)
+        self.comboBox.setGeometry(QtCore.QRect(350, 240, 120, 21))
+        self.comboBox.setObjectName("comboBox")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
         self.groupBox_2 = QtWidgets.QGroupBox(self.BallBearing)
         self.groupBox_2.setGeometry(QtCore.QRect(20, 470, 500, 220))
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
@@ -346,7 +347,8 @@ class Ui_MainWindow(object):
         self.lineEdit_5.setText(_translate("MainWindow", "0.0"))
         self.lineEdit_6.setText(_translate("MainWindow", "0.0"))
         self.lineEdit_7.setText(_translate("MainWindow", "0.01"))
-        self.lineEdit_8.setText(_translate("MainWindow", "1"))
+        self.comboBox.setItemText(0, _translate("MainWindow", "Deep Groove"))
+        self.comboBox.setItemText(1, _translate("MainWindow", "Thrust"))
         self.groupBox_2.setTitle(_translate("MainWindow", "Load"))
         self.label_8.setText(_translate("MainWindow", "Fx / N"))
         self.label_9.setText(_translate("MainWindow", "Fy / N"))
