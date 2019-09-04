@@ -112,6 +112,7 @@ class BallBearing:
     def check(self):
 
         if self.type == 2 and self.alpha_deg == 0.0:
+            print("---")
             print("Error: Thrust Bearing with Zero Nominal Contact Angle.")
             flag = 1
         else:
@@ -250,6 +251,7 @@ class BallBearing:
         self.Alpha_Element = np.degrees(self.Alpha_Element)
         self.Q_Element = self.cp * np.power(self.Delta_Element, 1.5)
         np.set_printoptions(formatter={'float': '{: 0.4f}'.format})
+        print("---")
         print("Delta_Element = ", self.Delta_Element)
         print("Alpha_Element = ", self.Alpha_Element)
         print("Q_Element = ", self.Q_Element)
@@ -377,8 +379,8 @@ if __name__ == "__main__":
     print("Example")
     material_1 = Material("Steel", 210000.0, 0.3)
     bearing_1 = BallBearing(1, 7, 11.5, 43.5, 0.0, 0.0, 2)
-    flag = bearing_1.check()
-    if flag > 0:
+    error_flag = bearing_1.check()
+    if error_flag > 0:
         exit()
     bearing_1.geometry(0.01)
     bearing_1.stiffness(material_1)
